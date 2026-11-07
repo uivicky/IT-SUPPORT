@@ -36,6 +36,7 @@ import {
   getSearchSuggestions,
   POPULAR_SEARCH_EXAMPLES,
 } from '../utils/searchEngine';
+import { trackEvent } from '../utils/analytics';
 import { IssueCard } from '../components/IssueCard';
 import { AboutDeveloperSection } from '../components/DeveloperBranding';
 import { useLearningProgress } from '../hooks/useLearningProgress';
@@ -201,9 +202,7 @@ export const HomePage: React.FC = () => {
     e.preventDefault();
     const q = searchInput.trim();
     if (q) {
-      import('../utils/analytics').then(({ trackEvent }) => {
-        trackEvent('internal_search', { search_term: q, source: 'home_hero' });
-      });
+      trackEvent('internal_search', { search_term: q, source: 'home_hero' });
     }
     navigate(q ? `/issues?q=${encodeURIComponent(q)}` : '/issues');
   };

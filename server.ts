@@ -163,6 +163,9 @@ async function startServer() {
     }
   });
 
+  const publicPath = path.join(__dirname, 'public');
+  app.use(express.static(publicPath));
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({

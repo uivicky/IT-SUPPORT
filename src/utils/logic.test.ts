@@ -438,6 +438,15 @@ describe('Global SEO & Runbook Enrichment Integrity', () => {
       trackEvent('test_event', { user_email: 'test@example.com', count: 1 });
     });
   });
+
+  it('verifies that public/google4b0bbeb71306411b.html exists with exact original Google content', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const filePath = path.resolve(process.cwd(), 'public/google4b0bbeb71306411b.html');
+    assert.ok(fs.existsSync(filePath), 'public/google4b0bbeb71306411b.html must exist');
+    const content = fs.readFileSync(filePath, 'utf8').trim();
+    assert.equal(content, 'google-site-verification: google4b0bbeb71306411b.html');
+  });
 });
 
 
