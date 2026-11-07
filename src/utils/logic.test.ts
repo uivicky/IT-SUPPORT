@@ -447,6 +447,15 @@ describe('Global SEO & Runbook Enrichment Integrity', () => {
     const content = fs.readFileSync(filePath, 'utf8').trim();
     assert.equal(content, 'google-site-verification: google4b0bbeb71306411b.html');
   });
+
+  it('verifies that index.html contains the exact Bing Webmaster Tools verification meta tag exactly once', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const indexPath = path.resolve(process.cwd(), 'index.html');
+    const content = fs.readFileSync(indexPath, 'utf8');
+    const matches = content.match(/<meta\s+name=["']msvalidate\.01["']\s+content=["']E3F2A39BE75B4A5D324D94657EF11B03["']\s*\/>/g);
+    assert.ok(matches && matches.length === 1, 'Bing meta tag must exist exactly once in index.html');
+  });
 });
 
 
