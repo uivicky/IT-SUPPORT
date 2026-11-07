@@ -475,6 +475,95 @@ describe('Global SEO & Runbook Enrichment Integrity', () => {
     const content = fs.readFileSync(filePath, 'utf8');
     assert.ok(content.includes('<user>E3F2A39BE75B4A5D324D94657EF11B03</user>'));
   });
+
+  it('verifies Google Tag Manager container GTM-N8XQFGK3 installation in head and body without duplicates', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const indexPath = path.resolve(process.cwd(), 'index.html');
+    const content = fs.readFileSync(indexPath, 'utf8');
+
+    // 1. Script in head
+    const headGtmMatches = content.match(/googletagmanager\.com\/gtm\.js\?id=/g);
+    assert.ok(headGtmMatches && headGtmMatches.length === 1, 'GTM head script must exist exactly once');
+    assert.ok(content.includes("'GTM-N8XQFGK3'"), 'GTM container ID GTM-N8XQFGK3 must be specified in head snippet');
+
+    // Check script is inside <head>
+    const headCloseIndex = content.indexOf('</head>');
+    const gtmScriptIndex = content.indexOf("'GTM-N8XQFGK3'");
+    assert.ok(gtmScriptIndex !== -1 && gtmScriptIndex < headCloseIndex, 'GTM script must be inside <head>');
+
+    // 2. Noscript iframe immediately after opening body
+    const bodyOpenIndex = content.indexOf('<body');
+    const noscriptIndex = content.indexOf('https://www.googletagmanager.com/ns.html?id=GTM-N8XQFGK3');
+    assert.ok(noscriptIndex !== -1, 'GTM noscript iframe must exist');
+    assert.ok(noscriptIndex > bodyOpenIndex, 'GTM noscript iframe must be placed inside <body>');
+    
+    // Ensure noscript occurs before root div
+    const rootDivIndex = content.indexOf('<div id="root"></div>');
+    assert.ok(noscriptIndex < rootDivIndex, 'GTM noscript must be placed immediately after <body> before #root');
+
+    // 3. No duplicate containers
+    const allGtmIdOccurrences = content.match(/GTM-N8XQFGK3/g);
+    assert.equal(allGtmIdOccurrences?.length, 2, 'GTM-N8XQFGK3 must appear exactly twice (once in head script, once in body noscript)');
+  });
+
+  it('enforces GTM container ID cannot be used as GA4 Measurement ID and validates deduplication logic', async () => {
+    const {
+      GTM_CONTAINER_ID,
+      getMeasurementId,
+      pushToDataLayer,
+      trackPageView,
+      resetAnalyticsForTesting,
+    } = await import('./analytics');
+
+    assert.equal(GTM_CONTAINER_ID, 'GTM-N8XQFGK3');
+
+    // Simulate accidentally setting VITE_GA_MEASUREMENT_ID to GTM container ID
+    const origEnv = process.env.VITE_GA_MEASUREMENT_ID;
+    try {
+      process.env.VITE_GA_MEASUREMENT_ID = 'GTM-N8XQFGK3';
+      assert.equal(getMeasurementId(), undefined, 'GTM container ID must be rejected as a GA4 Measurement ID');
+
+      process.env.VITE_GA_MEASUREMENT_ID = 'G-XXXXXXXXXX';
+      assert.equal(getMeasurementId(), undefined, 'Placeholder G-XXXXXXXXXX must be rejected');
+
+      process.env.VITE_GA_MEASUREMENT_ID = 'G-VALID12345';
+      assert.equal(getMeasurementId(), 'G-VALID12345', 'Valid G- prefixed Measurement ID must be accepted');
+    } finally {
+      process.env.VITE_GA_MEASUREMENT_ID = origEnv;
+    }
+
+    // Test pushToDataLayer and trackPageView deduplication
+    const mockWindow = {
+      dataLayer: [] as unknown[],
+      location: { href: 'https://it-support-engg.vercel.app/windows-troubleshooting' },
+      document: { title: 'Windows Troubleshooting' },
+      navigator: { doNotTrack: '0' },
+    };
+    (globalThis as unknown as { window: typeof mockWindow }).window = mockWindow;
+
+    resetAnalyticsForTesting();
+
+    // Push test object to dataLayer
+    pushToDataLayer({ event: 'test_event', test_val: 123 });
+    assert.equal(mockWindow.dataLayer.length, 1);
+    assert.deepEqual(mockWindow.dataLayer[0], { event: 'test_event', test_val: 123 });
+
+    // Track initial page view
+    trackPageView('/windows-troubleshooting', 'Windows Troubleshooting');
+    assert.equal(mockWindow.dataLayer.length, 2);
+    const pvEvent = mockWindow.dataLayer[1] as Record<string, unknown>;
+    assert.equal(pvEvent.event, 'virtual_page_view');
+    assert.equal(pvEvent.page_path, '/windows-troubleshooting');
+
+    // Consecutive identical page view should be deduplicated (no duplicate push)
+    trackPageView('/windows-troubleshooting', 'Windows Troubleshooting');
+    assert.equal(mockWindow.dataLayer.length, 2, 'Duplicate consecutive page view should be ignored');
+
+    // Navigating to a new route should track correctly
+    trackPageView('/networking-tools', 'Networking Tools');
+    assert.equal(mockWindow.dataLayer.length, 3, 'New route navigation must be tracked');
+  });
 });
 
 
