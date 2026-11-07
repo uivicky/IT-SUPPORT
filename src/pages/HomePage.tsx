@@ -133,10 +133,24 @@ export const HomePage: React.FC = () => {
   const { progress, levelInfo, badgeCatalog } = useLearningProgress();
 
   usePageSEO({
-    title: 'IT SUPPORT — Learn IT. Solve Problems. Build Your Career.',
+    title: 'IT SUPPORT — Your Complete IT Troubleshooting Guide',
     description:
-      'IT Looks Difficult? Let’s Make It Simple. Learn IT from zero with 25 visual beginner lessons, interactive packet labs, a real-world IT ticket simulator, 325+ troubleshooting solutions, and IT SUPPORT AI.',
+      'Solve 325+ real-world Windows, Networking, Active Directory, Microsoft 365, Linux, and Azure issues with step-by-step fixes, commands, subnet tools, and IT SUPPORT AI.',
     canonicalPath: '/',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'IT SUPPORT',
+      alternateName: 'Your Complete IT Troubleshooting Guide',
+      url: 'https://it-support-engg.vercel.app/',
+      description:
+        'Public IT troubleshooting knowledge base with 325+ real-world step-by-step solutions, Windows/Linux/AD/M365 guides, IT commands library, subnet calculators, interview prep, learning roadmap, and IT SUPPORT AI.',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://it-support-engg.vercel.app/issues?q={search_term_string}',
+        'query-input': 'required name=search_term_string',
+      },
+    },
   });
 
   useEffect(() => {
@@ -186,6 +200,11 @@ export const HomePage: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchInput.trim();
+    if (q) {
+      import('../utils/analytics').then(({ trackEvent }) => {
+        trackEvent('internal_search', { search_term: q, source: 'home_hero' });
+      });
+    }
     navigate(q ? `/issues?q=${encodeURIComponent(q)}` : '/issues');
   };
 

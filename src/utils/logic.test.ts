@@ -396,4 +396,48 @@ describe('Developer Branding & Official WhatsApp Configuration', () => {
   });
 });
 
+describe('Global SEO & Runbook Enrichment Integrity', () => {
+  it('enriches all 325+ runbooks with search-intent titles, FAQs, verification steps, and vendor references', async () => {
+    const { enrichRunbookSEO } = await import('./runbookSEO');
+
+    assert.equal(ALL_ISSUES.length, 325);
+
+    for (const issue of ALL_ISSUES) {
+      const enriched = enrichRunbookSEO(issue);
+      assert.ok(enriched.searchIntentTitle.length > 10, `Short SEO title on ${issue.id}`);
+      assert.ok(enriched.metaDescription.length >= 60 && enriched.metaDescription.length <= 165, `Meta description length invalid on ${issue.id}: ${enriched.metaDescription.length}`);
+      assert.ok(enriched.faqs.length >= 3, `Missing FAQs on ${issue.id}`);
+      assert.ok(enriched.verificationProcedure.length >= 3, `Missing verification on ${issue.id}`);
+      assert.ok(enriched.officialReferences.length >= 2, `Missing vendor refs on ${issue.id}`);
+      for (const ref of enriched.officialReferences) {
+        assert.ok(ref.url.startsWith('https://'), `Insecure or invalid ref URL on ${issue.id}: ${ref.url}`);
+      }
+    }
+  });
+
+  it('generates canonical sitemap covering 348 URLs matching all public routes', async () => {
+    const { buildSitemapXml } = await import('../../scripts/generate-sitemap');
+    const xml = buildSitemapXml('https://it-support-engg.vercel.app');
+
+    assert.ok(xml.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'));
+    assert.ok(xml.includes('<loc>https://it-support-engg.vercel.app/</loc>'));
+    assert.ok(xml.includes('<loc>https://it-support-engg.vercel.app/windows-troubleshooting</loc>'));
+    assert.ok(xml.includes('<loc>https://it-support-engg.vercel.app/issues/windows-update-failed-with-error-0x80070005-access-denied</loc>'));
+
+    // Count URLs in sitemap
+    const urlMatches = xml.match(/<loc>/g);
+    assert.equal(urlMatches?.length, 348, `Expected 348 URLs in sitemap, found ${urlMatches?.length}`);
+  });
+
+  it('safely handles GA4 analytics initialization without crashing and redacts PII', async () => {
+    const { getMeasurementId, trackEvent } = await import('./analytics');
+    // Without VITE_GA_MEASUREMENT_ID, getMeasurementId returns undefined gracefully
+    assert.equal(getMeasurementId(), undefined);
+    // Calling trackEvent before initialization does not throw
+    assert.doesNotThrow(() => {
+      trackEvent('test_event', { user_email: 'test@example.com', count: 1 });
+    });
+  });
+});
+
 

@@ -93,7 +93,7 @@ async function startServer() {
     const baseUrl =
       (process.env.APP_URL && process.env.APP_URL !== 'MY_APP_URL'
         ? process.env.APP_URL
-        : `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+        : 'https://it-support-engg.vercel.app').replace(/\/$/, '');
     res.type('text/plain').send(
       `User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`
     );
@@ -103,13 +103,13 @@ async function startServer() {
     const baseUrl =
       (process.env.APP_URL && process.env.APP_URL !== 'MY_APP_URL'
         ? process.env.APP_URL
-        : `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+        : 'https://it-support-engg.vercel.app').replace(/\/$/, '');
     const today = new Date().toISOString().split('T')[0];
 
-    const staticEntries = STATIC_ROUTES.map(
-      (route) =>
-        `  <url>\n    <loc>${baseUrl}${route}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${route === '/' ? '1.0' : '0.8'}</priority>\n  </url>`
-    );
+    const staticEntries = STATIC_ROUTES.map((route) => {
+      const priority = route === '/' ? '1.0' : route.includes('troubleshooting') || route === '/issues' ? '0.9' : '0.8';
+      return `  <url>\n    <loc>${baseUrl}${route}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+    });
 
     const issueEntries = ALL_ISSUES.map(
       (issue) =>
@@ -122,6 +122,45 @@ async function startServer() {
     ].join('\n')}\n</urlset>`;
 
     res.type('application/xml').send(xml);
+  });
+
+  // Secure Server-Side IndexNow API route for Bing & Yandex instant indexing
+  app.post('/api/indexnow', async (req, res) => {
+    const indexNowApiKey = process.env.INDEXNOW_API_KEY;
+    if (!indexNowApiKey) {
+      res.status(503).json({
+        error: 'IndexNow is not configured. Add INDEXNOW_API_KEY in environment variables.',
+      });
+      return;
+    }
+
+    const { urlList, host = 'it-support-engg.vercel.app' } = req.body || {};
+    if (!Array.isArray(urlList) || urlList.length === 0) {
+      res.status(400).json({ error: 'urlList must be a non-empty array of URLs.' });
+      return;
+    }
+
+    try {
+      const response = await fetch('https://api.indexnow.org/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          host,
+          key: indexNowApiKey,
+          keyLocation: `https://${host}/${indexNowApiKey}.txt`,
+          urlList: urlList.slice(0, 1000),
+        }),
+      });
+
+      res.status(response.status).json({
+        status: response.status,
+        statusText: response.statusText,
+        submittedUrls: urlList.length,
+      });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      res.status(502).json({ error: 'Failed to submit URLs to IndexNow', details: errorMsg });
+    }
   });
 
   if (process.env.NODE_ENV !== 'production') {

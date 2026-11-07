@@ -25,6 +25,19 @@ export const DomainGuidePage: React.FC<DomainGuidePageProps> = ({ guide }) => {
     title: guide.title,
     description: guide.metaDescription,
     canonicalPath: guide.route,
+    breadcrumbs: [
+      { name: 'Home', item: '/' },
+      { name: 'Guides', item: '/issues' },
+      { name: guide.title, item: guide.route },
+    ],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: guide.title,
+      description: guide.metaDescription,
+      url: `https://it-support-engg.vercel.app${guide.route}`,
+      inLanguage: 'en',
+    },
   });
 
   const domainIssues = useMemo(() => {

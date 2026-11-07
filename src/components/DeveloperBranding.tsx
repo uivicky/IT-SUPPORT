@@ -1,6 +1,7 @@
 import React from 'react';
 import { Code2, ExternalLink, Layers, Sparkles } from 'lucide-react';
 import { DEVELOPER_BRANDING } from '../utils/developerBranding';
+import { trackEvent } from '../utils/analytics';
 
 export const WhatsAppIcon: React.FC<{ className?: string }> = ({
   className = 'h-5 w-5',
@@ -18,16 +19,21 @@ export const WhatsAppIcon: React.FC<{ className?: string }> = ({
 interface WhatsAppContactButtonProps {
   className?: string;
   compact?: boolean;
+  location?: string;
 }
 
 export const WhatsAppContactButton: React.FC<WhatsAppContactButtonProps> = ({
   className = '',
   compact = false,
+  location = 'developer_section',
 }) => (
   <a
     href={DEVELOPER_BRANDING.whatsappUrl}
     target="_blank"
     rel="noopener noreferrer"
+    onClick={() => {
+      trackEvent('whatsapp_contact_click', { button_location: location });
+    }}
     className={`inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-[#041b0c] font-bold whitespace-nowrap shrink-0 shadow-md transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] ${
       compact ? 'px-4 py-2.5 text-xs sm:text-sm' : 'px-5 py-3 text-sm'
     } ${className}`}
@@ -160,6 +166,9 @@ export const FloatingWhatsAppButton: React.FC = () => (
     aria-label="Contact Developer VICKY VICTORIX on WhatsApp"
     title={DEVELOPER_BRANDING.ctaLabel}
     data-testid="floating-whatsapp-button"
+    onClick={() => {
+      trackEvent('whatsapp_contact_click', { button_location: 'floating_icon' });
+    }}
     className="fixed bottom-5 right-5 z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_24px_rgba(37,211,102,0.38)] transition-transform duration-200 hover:scale-105 hover:bg-[#1ebe5d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
   >
     <WhatsAppIcon className="h-7 w-7" />

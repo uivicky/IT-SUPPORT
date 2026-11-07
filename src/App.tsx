@@ -6,6 +6,7 @@ import {
   Routes,
   useLocation,
 } from 'react-router-dom';
+import { initGA, trackPageView } from './utils/analytics';
 import { DOMAIN_GUIDES } from './data/issuesIndex';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
@@ -27,6 +28,21 @@ import {
   PrivacyPolicyPage,
   TermsPage,
 } from './pages/StaticPages';
+
+function AnalyticsTracker() {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    initGA();
+  }, []);
+
+  useEffect(() => {
+    const fullPath = `${pathname}${search}`;
+    trackPageView(fullPath, document.title);
+  }, [pathname, search]);
+
+  return null;
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -73,6 +89,7 @@ function NotFoundPage() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AnalyticsTracker />
       <ScrollToTop />
       <Layout>
         <Routes>

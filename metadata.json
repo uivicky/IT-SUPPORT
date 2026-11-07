@@ -1,6 +1,6 @@
 {
   "name": "IT SUPPORT – Your Complete IT Troubleshooting Guide",
-  "description": "Public IT troubleshooting knowledge base with 300+ real-world step-by-step solutions, Windows/Linux/AD/M365 guides, IT commands library, subnet calculators, interview prep, learning roadmap, and IT SUPPORT AI.",
+  "description": "Public IT troubleshooting knowledge base with 325+ real-world step-by-step solutions, Windows/Linux/AD/M365 guides, IT commands library, subnet calculators, interview prep, learning roadmap, and IT SUPPORT AI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

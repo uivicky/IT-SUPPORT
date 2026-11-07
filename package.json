@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build:sitemap": "tsx scripts/generate-sitemap.ts",
+    "build": "npm run build:sitemap && vite build",
     "start": "node server.ts",
     "preview": "vite preview",
     "test": "tsx --test src/utils/logic.test.ts",

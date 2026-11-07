@@ -25,6 +25,9 @@ import { CopyButton } from '../components/CopyButton';
 import { IssueCard } from '../components/IssueCard';
 import { IssueCategorySchematic } from '../components/TechVisuals';
 import { usePageSEO } from '../utils/seo';
+import { enrichRunbookSEO } from '../utils/runbookSEO';
+import { DEVELOPER_BRANDING } from '../utils/developerBranding';
+import { ExternalLink } from 'lucide-react';
 
 function getBeginnerContextForCategory(category: string): {
   analogy: string;
@@ -127,23 +130,81 @@ export const IssueDetailPage: React.FC = () => {
     [beginnerContext.quizModeId]
   );
 
+  const enrichedSEO = useMemo(
+    () => (issue ? enrichRunbookSEO(issue) : null),
+    [issue]
+  );
+
+  const jsonLdPayload = useMemo(() => {
+    if (!issue || !enrichedSEO) return undefined;
+    const origin = 'https://it-support-engg.vercel.app';
+    const canonicalUrl = `${origin}/issues/${issue.slug}`;
+
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'TechArticle',
+        headline: enrichedSEO.searchIntentTitle,
+        alternativeHeadline: issue.title,
+        description: enrichedSEO.metaDescription,
+        proficiencyLevel: issue.difficulty,
+        articleSection: issue.category,
+        keywords: issue.keywords.join(', '),
+        inLanguage: 'en',
+        url: canonicalUrl,
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': canonicalUrl,
+        },
+        author: {
+          '@type': 'Person',
+          name: DEVELOPER_BRANDING.fullCreditName,
+          jobTitle: DEVELOPER_BRANDING.role,
+          url: origin,
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'IT SUPPORT',
+          url: origin,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${origin}/favicon.ico`,
+          },
+        },
+        datePublished: '2025-01-01T00:00:00Z',
+        dateModified: new Date().toISOString().split('T')[0],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: enrichedSEO.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      },
+    ];
+  }, [issue, enrichedSEO]);
+
   usePageSEO({
-    title: issue ? `${issue.title} — Fix & Commands` : 'Issue Not Found',
-    description: issue
-      ? `${issue.shortDescription} Step-by-step fix, ${issue.commands[0]?.shell || 'CLI'} commands, and prevention guide.`
+    title: enrichedSEO ? enrichedSEO.searchIntentTitle : 'Troubleshooting Runbook',
+    description: enrichedSEO
+      ? enrichedSEO.metaDescription
       : 'Browse 325+ verified IT troubleshooting guides on IT SUPPORT.',
     canonicalPath: issue ? `/issues/${issue.slug}` : '/issues',
-    jsonLd: issue
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'TechArticle',
-          headline: issue.title,
-          description: issue.shortDescription,
-          proficiencyLevel: issue.difficulty,
-          articleSection: issue.category,
-          keywords: issue.keywords.join(', '),
-        }
+    ogType: 'article',
+    breadcrumbs: issue
+      ? [
+          { name: 'Home', item: '/' },
+          { name: 'IT Issues', item: '/issues' },
+          { name: issue.category, item: `/issues?category=${encodeURIComponent(issue.category)}` },
+          { name: issue.title, item: `/issues/${issue.slug}` },
+        ]
       : undefined,
+    jsonLd: jsonLdPayload,
   });
 
   if (!issue) {
@@ -269,7 +330,7 @@ export const IssueDetailPage: React.FC = () => {
 
         <div>
           <h1 className="font-['Sora',sans-serif] text-2xl sm:text-4xl font-bold text-white leading-tight">
-            {issue.title}
+            {enrichedSEO ? enrichedSEO.primaryH1 : issue.title}
           </h1>
 
           <p className="mt-3 text-base sm:text-lg leading-relaxed text-slate-300">
@@ -537,6 +598,103 @@ export const IssueDetailPage: React.FC = () => {
             </ul>
           </section>
         </div>
+
+        {/* Verification Procedure & Advanced Diagnostics */}
+        {enrichedSEO && (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <section className="rounded-xl border border-[#1d2338] bg-[#0d101b] p-6">
+              <h2 className="font-['Sora',sans-serif] text-base font-semibold text-white flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-[#27d3f0]" />
+                <span>Verification &amp; Remediation Validation</span>
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-300">
+                {enrichedSEO.verificationProcedure.map((vStep, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5">
+                    <span className="font-mono text-xs font-bold text-[#27d3f0] mt-0.5 tabular-nums">
+                      {idx + 1}.
+                    </span>
+                    <span>{vStep}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-xl border border-[#1d2338] bg-[#0d101b] p-6">
+              <h2 className="font-['Sora',sans-serif] text-base font-semibold text-white flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-[#8b6cff]" />
+                <span>Advanced Enterprise Isolation</span>
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-300">
+                {enrichedSEO.advancedDiagnostics.map((diag, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5">
+                    <span className="font-mono text-xs font-bold text-[#8b6cff] mt-0.5">
+                      •
+                    </span>
+                    <span>{diag}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        )}
+
+        {/* Frequently Asked Questions (Structured FAQ) */}
+        {enrichedSEO && enrichedSEO.faqs.length > 0 && (
+          <section className="rounded-xl border border-[#1d2338] bg-[#0d101b] p-6 sm:p-7 space-y-4">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-[#27d3f0]" />
+              <h2 className="font-['Sora',sans-serif] text-lg sm:text-xl font-bold text-white">
+                Frequently Asked Questions — {issue.title}
+              </h2>
+            </div>
+            <div className="space-y-4 pt-2">
+              {enrichedSEO.faqs.map((faq, idx) => (
+                <div key={idx} className="rounded-lg border border-[#1f2742] bg-[#080a13] p-4 space-y-2">
+                  <h3 className="font-['Sora',sans-serif] text-sm sm:text-base font-semibold text-[#e9ebf7]">
+                    {faq.question}
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Official Vendor Documentation References */}
+        {enrichedSEO && enrichedSEO.officialReferences.length > 0 && (
+          <section className="rounded-xl border border-[#1d2338] bg-[#0d101b] p-6 space-y-3">
+            <h2 className="font-['Sora',sans-serif] text-base font-bold text-white flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-[#8b6cff]" />
+              <span>Official Technical References &amp; Standards</span>
+            </h2>
+            <p className="text-xs text-slate-400">
+              Verified documentation from official platform vendors for authoritative enterprise configuration:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              {enrichedSEO.officialReferences.map((ref, idx) => (
+                <a
+                  key={idx}
+                  href={ref.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-[#1e2642] bg-[#080a13] p-3.5 hover:border-[#27d3f0] transition-colors flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-semibold text-[#27d3f0] group-hover:underline">
+                      <span className="truncate">{ref.name}</span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 ml-1.5 opacity-80" />
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                      {ref.note}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Ask AI About This Issue */}
         <section className="rounded-xl border border-[#8b6cff]/40 bg-gradient-to-r from-[#131127] to-[#0c1824] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
