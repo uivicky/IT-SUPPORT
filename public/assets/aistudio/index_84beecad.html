@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FixDesk – IT Support Guide for Engineers</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06070d;--p:#0e1019;--p2:#151827;--t:#e9ebf7;--m:#8a90ab;--a:#8b6cff;--b:#27d3f0;--l:#ffffff14;--r:14px}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--t);font:15px/1.6 Inter,system-ui,sans-serif;display:grid;grid-template-rows:56px 1fr;overflow:hidden}
+h1,h2,h3,button,.logo{font-family:Sora,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--l);background:#0a0b13}
+.logo{font-weight:700;font-size:18px;letter-spacing:.2px;flex:1}.logo i{font-style:normal;background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;color:transparent}
+button{cursor:pointer;border:0;color:var(--t);font-size:14px}
+.btn{padding:8px 16px;border-radius:10px;background:linear-gradient(135deg,var(--a),#5b8cff);font-weight:600}
+.ghost{background:var(--p2);border:1px solid var(--l)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+main{display:grid;grid-template-columns:340px 1fr;min-height:0}
+aside{border-right:1px solid var(--l);display:flex;flex-direction:column;min-height:0;background:var(--p)}
+.sbox{padding:14px;border-bottom:1px solid var(--l)}
+.sbox input{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--l);background:var(--bg);color:var(--t);font-size:14px}
+.sbox button{width:100%;margin-top:8px}
+#list{overflow:auto;padding:8px 8px 24px;flex:1}
+.cat{font:600 12px Sora;color:var(--m);padding:14px 10px 6px}
+.it{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;background:none;color:var(--t);border-left:3px solid transparent}
+.it:hover{background:var(--p2)}
+.it.on{background:var(--p2);border-left-color:var(--b)}
+section{position:relative;overflow:auto;min-height:0}
+#stage{position:relative;height:300px;background:radial-gradient(circle at 50% 40%,#1b1840,var(--bg) 70%)}
+#cv{width:100%;height:100%;display:block}
+#hd{position:absolute;left:28px;bottom:18px;right:28px;pointer-events:none}
+#hd h2{font-size:26px;line-height:1.25}#hd span{color:var(--b);font-size:13px}
+#sol{padding:24px 28px 60px;max-width:760px}
+.st{display:flex;gap:14px;padding:14px 16px;margin-bottom:12px;background:var(--p);border:1px solid var(--l);border-radius:var(--r);animation:in .45s both}
+.st b{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--a),var(--b));font:600 13px Sora;color:#06070d}
+@keyframes in{from{opacity:0;transform:translateX(18px)}}
+.ai{white-space:pre-wrap;padding:16px;border:1px solid var(--a);border-radius:var(--r);background:var(--p)}
+dialog{margin:auto;border:1px solid var(--l);border-radius:18px;background:var(--p);color:var(--t);padding:28px;width:min(380px,92vw)}
+dialog::backdrop{background:#000a;backdrop-filter:blur(6px)}
+dialog input{width:100%;margin:6px 0;padding:11px 14px;border-radius:10px;border:1px solid var(--l);background:var(--bg);color:var(--t)}
+dialog h3{margin-bottom:10px}dialog .btn{width:100%;margin-top:10px}
+.lk{background:none;color:var(--b);font-size:13px;padding:6px 0;margin-right:12px}
+#msg{font-size:13px;margin-top:8px;color:var(--b);min-height:18px}
+@media(max-width:800px){body{overflow:auto;display:block}main{display:block}aside{max-height:46vh}#stage{height:220px}}
+@media(prefers-reduced-motion:reduce){.st{animation:none}}
+</style></head><body>
+<header><div class="logo">Fix<i>Desk</i></div><span id="who" style="color:var(--m);font-size:13px"></span>
+<button class="btn" id="authBtn">Sign in</button></header>
+<main>
+<aside><div class="sbox"><input id="q" placeholder="Search any IT issue…" autocomplete="off">
+<button class="btn" id="ask">Ask AI to find solution</button></div><div id="list"></div></aside>
+<section><div id="stage"><canvas id="cv"></canvas><div id="hd"><span id="hc"></span><h2 id="ht">Pick an issue on the left</h2></div></div>
+<div id="sol"><div class="st"><b>i</b><div>Select any issue from the list, or search above. If it is not listed, use "Ask AI".</div></div></div></section>
+</main>
+
+<dialog id="dlg"><h3 id="dt">Sign in</h3>
+<input id="un" placeholder="Username" autocomplete="username">
+<input id="em" type="email" placeholder="Email" autocomplete="email">
+<input id="pw" type="password" placeholder="Password" autocomplete="current-password">
+<button class="btn" id="go">Sign in</button>
+<div style="margin-top:10px"><button class="lk" id="tUp">Create account</button><button class="lk" id="tFg">Forgot password?</button></div>
+<div id="msg"></div><button class="lk" id="cl">Close</button></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ===== CONFIG: apni Supabase details yahan daalo ===== */
+const SB_URL='YOUR_SUPABASE_URL', SB_KEY='YOUR_SUPABASE_ANON_KEY';
+let sb;
+try{sb=supabase.createClient(SB_URL,SB_KEY)}catch(e){
+const er={error:{message:'Supabase keys index.html me set nahi hain (SB_URL, SB_KEY).'}},no=async()=>er;
+sb={auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{},signOut:no,signInWithPassword:no,signUp:no,resetPasswordForEmail:no,updateUser:no}}}
+
+/* ===== ISSUE DATA: [category, title, steps separated by |] — yahan aur add kar sakte ho ===== */
+const D=[
+['Network','WiFi connected but no internet','Restart router and PC|Run ipconfig /flushdns in CMD (admin)|Set DNS to 8.8.8.8 and 1.1.1.1|Ping the gateway; if it fails, check ISP/cable'],
+['Network','Limited connectivity / APIPA 169.254.x.x','Check DHCP server is running|Run ipconfig /release then /renew|Replace cable or switch port|Set a static IP to confirm the NIC works'],
+['Network','Website opens slowly','Test speed on another device|Clear browser cache and DNS cache|Disable VPN/proxy temporarily|Check bandwidth hogs on the router'],
+['Network','VPN not connecting','Check internet works without VPN|Verify credentials and MFA|Allow VPN app in firewall|Reinstall VPN client or change protocol (UDP/TCP)'],
+['Network','IP address conflict','Run arp -a to find the duplicate MAC|Move one device to a different IP|Reserve IPs in DHCP|Restart the NIC'],
+['Windows','Windows won\'t boot / boot loop','Boot from USB, open Recovery|Run Startup Repair|Run sfc /scannow and DISM /RestoreHealth|Rebuild BCD: bootrec /rebuildbcd'],
+['Windows','Blue Screen (BSOD)','Note the stop code|Boot Safe Mode, uninstall last driver/update|Run sfc /scannow and chkdsk /f|Test RAM with Windows Memory Diagnostic'],
+['Windows','PC running very slow','Check Task Manager for high CPU/RAM/Disk|Disable startup apps|Free disk space; run Disk Cleanup|Scan for malware; upgrade to SSD if on HDD'],
+['Windows','Windows Update stuck or failing','Run Update Troubleshooter|Stop wuauserv, clear C:\\Windows\\SoftwareDistribution|Start wuauserv again|Run DISM /RestoreHealth then retry'],
+['Windows','Forgot local admin password','Use another admin account to reset|Else boot recovery media and reset via policy tools|For domain PCs, reset in Active Directory|Enable BitLocker recovery key backup'],
+['Hardware','Laptop not charging','Try another adapter and outlet|Inspect port and cable for damage|Remove battery, hold power 30 sec|Update BIOS/battery driver; replace battery if swollen'],
+['Hardware','Laptop overheating','Clean vents with compressed air|Use a hard flat surface|Check high CPU processes|Replace thermal paste if old'],
+['Hardware','No display / black screen','Check power LED and cable|Try another monitor/HDMI cable|Reseat RAM|Reset BIOS (CMOS battery)'],
+['Hardware','USB device not recognized','Try another port and PC|Uninstall device in Device Manager and replug|Disable USB selective suspend|Update chipset drivers'],
+['Hardware','Hard disk making noise / failing','Back up data immediately|Check SMART with CrystalDiskInfo|Run chkdsk|Replace the drive and restore'],
+['Printer','Printer offline','Power cycle printer and PC|Set "Use printer online" and make it default|Check same network / IP|Reinstall driver'],
+['Printer','Print job stuck in queue','Stop Print Spooler service|Delete files in C:\\Windows\\System32\\spool\\PRINTERS|Start Print Spooler|Reprint'],
+['Printer','Paper jam / blurry print','Open all trays and remove paper gently|Check roller for dust|Run head cleaning/calibration|Replace toner/cartridge'],
+['Email','Outlook not connecting / disconnected','Check internet and work offline mode|Repair profile in Control Panel > Mail|Run outlook.exe /safe|Recreate the account'],
+['Email','Mailbox full','Archive old mail|Empty Deleted Items and Junk|Enable auto-archive|Ask admin to increase quota'],
+['Email','Emails going to spam','Check SPF, DKIM and DMARC records|Whitelist sender|Avoid spam-like content/attachments|Check IP reputation'],
+['Security','Suspected virus / malware','Disconnect from network|Boot Safe Mode and scan with Defender/Malwarebytes|Remove unknown apps and startup items|Change passwords from a clean device'],
+['Security','Account locked out (AD)','Open Active Directory Users and Computers|Right-click user > Unlock|Find the source of bad attempts in event logs (4740)|Reset password if compromised'],
+['Security','Phishing email reported','Do not click links|Report to security team|Block sender/domain|Reset passwords of anyone who clicked'],
+['Software','App keeps crashing','Update the app|Run as administrator|Check Event Viewer for the error|Repair or reinstall; test a clean boot'],
+['Software','Microsoft Office activation error','Sign in with licensed account|Run Office repair (Online)|Remove old licenses with the OSPP/CMD tool|Reinstall Office'],
+['Server','RDP not connecting','Check port 3389 and firewall rule|Confirm Remote Desktop is enabled|Verify user is in Remote Desktop Users|Check server resources and NLA setting'],
+['Server','Disk space full on server','Find big folders with WinDirStat/TreeSize|Clear logs and temp files|Move data to another volume|Extend the volume'],
+['Cloud','Cannot log in to Microsoft 365 / Google','Check password and MFA device time sync|Clear browser cache or use incognito|Check service status page|Admin: reset sessions and MFA']
+];
+
+/* ===== LIST ===== */
+const $=id=>document.getElementById(id), list=$('list');
+function render(f=''){list.innerHTML='';let c='';
+D.forEach((d,i)=>{if(f&&!(d[0]+d[1]+d[2]).toLowerCase().includes(f))return;
+if(d[0]!==c){c=d[0];list.insertAdjacentHTML('beforeend',`<div class="cat">${c}</div>`)}
+const b=document.createElement('button');b.className='it';b.textContent=d[1];b.dataset.i=i;b.onclick=()=>show(i);list.append(b)});
+if(!list.children.length)list.innerHTML='<div class="cat">No match. Try "Ask AI".</div>'}
+$('q').oninput=e=>render(e.target.value.trim().toLowerCase());
+
+function steps(arr){$('sol').innerHTML=arr.map((s,i)=>`<div class="st" style="animation-delay:${i*90}ms"><b>${i+1}</b><div></div></div>`).join('');
+$('sol').querySelectorAll('.st div').forEach((e,i)=>e.textContent=arr[i])}
+const cats=[...new Set(D.map(d=>d[0]))];
+function show(i){const d=D[i];document.querySelectorAll('.it').forEach(b=>b.classList.toggle('on',b.dataset.i==i));
+$('hc').textContent=d[0];$('ht').textContent=d[1];steps(d[2].split('|'));morph(cats.indexOf(d[0]))}
+
+/* ===== AI SEARCH ===== */
+$('ask').onclick=async()=>{const q=$('q').value.trim();if(!q)return $('q').focus();
+$('hc').textContent='AI assistant';$('ht').textContent=q;$('sol').innerHTML='<div class="ai">Searching for a solution…</div>';morph(Math.floor(Math.random()*6));
+let out='';
+try{const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
+const t=await r.text();let j;
+try{j=JSON.parse(t)}catch(e){j={error:'Server ne JSON nahi diya (status '+r.status+'). Is link par /api/ai deploy nahi hai.'}}
+out=j.answer||j.error||'No answer'}
+catch(e){out='Network error: '+e.message}
+$('sol').innerHTML='<div class="ai"></div>';$('sol').firstChild.textContent=out};
+
+/* ===== 3D (Three.js) ===== */
+const cv=$('cv'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}),S=new THREE.Scene(),C=new THREE.PerspectiveCamera(50,1,.1,100);
+C.position.z=5;S.add(new THREE.AmbientLight(0x8888ff,.6));
+const L1=new THREE.PointLight(0x27d3f0,2,20);L1.position.set(4,3,4);S.add(L1);
+const L2=new THREE.PointLight(0x8b6cff,2,20);L2.position.set(-4,-2,3);S.add(L2);
+const G=[()=>new THREE.TorusKnotGeometry(1,.32,140,20),()=>new THREE.OctahedronGeometry(1.5),()=>new THREE.IcosahedronGeometry(1.4,1),()=>new THREE.BoxGeometry(1.7,1.7,1.7),()=>new THREE.TorusGeometry(1.2,.4,24,60),()=>new THREE.DodecahedronGeometry(1.4),()=>new THREE.ConeGeometry(1.2,2.2,6),()=>new THREE.SphereGeometry(1.3,32,32),()=>new THREE.CylinderGeometry(1,1,1.8,8)];
+const hue=[.55,.7,.48,.9,.12,.8,.35,.6,.95];
+const mat=new THREE.MeshStandardMaterial({color:0x8b6cff,metalness:.7,roughness:.25});
+const mesh=new THREE.Mesh(G[0](),mat);S.add(mesh);
+const wire=new THREE.Mesh(mesh.geometry,new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.12}));wire.scale.setScalar(1.18);S.add(wire);
+const N=500,pp=new Float32Array(N*3);for(let i=0;i<N*3;i++)pp[i]=(Math.random()-.5)*14;
+const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+const pts=new THREE.Points(pg,new THREE.PointsMaterial({size:.03,color:0x27d3f0}));S.add(pts);
+let sc=1,mx=0,my=0;
+function morph(k){const g=G[k%G.length]();mesh.geometry.dispose();mesh.geometry=g;wire.geometry=g;
+mat.color.setHSL(hue[k%hue.length],.8,.6);sc=.01}
+function size(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);C.aspect=w/h;C.updateProjectionMatrix()}
+addEventListener('resize',size);size();R.setPixelRatio(Math.min(devicePixelRatio,2));
+$('stage').onmousemove=e=>{const r=cv.getBoundingClientRect();mx=(e.clientX-r.left)/r.width-.5;my=(e.clientY-r.top)/r.height-.5};
+const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+(function loop(t){requestAnimationFrame(loop);sc+= (1-sc)*.08;mesh.scale.setScalar(sc);wire.scale.setScalar(sc*1.18);
+const s=calm?0:.006;mesh.rotation.y+=s+mx*.02;mesh.rotation.x+=s*.6+my*.02;wire.rotation.copy(mesh.rotation);
+mesh.position.y=calm?0:Math.sin(t/800)*.12;wire.position.y=mesh.position.y;pts.rotation.y+=calm?0:.0008;R.render(S,C)})(0);
+
+/* ===== AUTH (Supabase) ===== */
+let mode='in';const dlg=$('dlg'),msg=t=>$('msg').textContent=t;
+function setMode(m){mode=m;const T={in:'Sign in',up:'Create account',fg:'Reset password',rs:'Set new password'};
+$('dt').textContent=T[m];$('go').textContent=T[m];msg('');
+$('un').style.display=m=='up'?'':'none';$('em').style.display=m=='rs'?'none':'';$('pw').style.display=(m=='fg')?'none':'';
+$('tUp').textContent=m=='in'?'Create account':'Back to sign in';$('tUp').onclick=()=>setMode(m=='in'?'up':'in')}
+$('tFg').onclick=()=>setMode('fg');
+$('authBtn').onclick=async()=>{const {data:{session}}=await sb.auth.getSession();
+if(session){await sb.auth.signOut()}else{setMode('in');dlg.showModal()}};
+$('cl').onclick=()=>dlg.close();
+$('go').onclick=async()=>{const e=$('em').value.trim(),p=$('pw').value,u=$('un').value.trim();let r;msg('Please wait…');
+if(mode=='in')r=await sb.auth.signInWithPassword({email:e,password:p});
+else if(mode=='up'){if(!u)return msg('Enter a username.');r=await sb.auth.signUp({email:e,password:p,options:{data:{username:u}}});
+if(!r.error&&!r.data.session)return msg('Account created. Check your email to confirm, then sign in.')}
+else if(mode=='fg'){r=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin});
+return msg(r.error?r.error.message:'Reset link sent. Check your email.')}
+else{r=await sb.auth.updateUser({password:p})}
+if(r.error)return msg(r.error.message);dlg.close()};
+function ui(s){$('who').textContent=s?('Hi, '+(s.user.user_metadata?.username||s.user.email)):'';$('authBtn').textContent=s?'Sign out':'Sign in'}
+sb.auth.onAuthStateChange((ev,s)=>{ui(s);if(ev=='PASSWORD_RECOVERY'){setMode('rs');$('pw').style.display='';$('pw').placeholder='New password';dlg.showModal()}});
+sb.auth.getSession().then(({data})=>ui(data.session));
+render();
+</script></body></html>
