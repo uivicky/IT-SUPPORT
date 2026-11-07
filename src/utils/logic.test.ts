@@ -448,13 +448,32 @@ describe('Global SEO & Runbook Enrichment Integrity', () => {
     assert.equal(content, 'google-site-verification: google4b0bbeb71306411b.html');
   });
 
-  it('verifies that index.html contains the exact Bing Webmaster Tools verification meta tag exactly once', async () => {
+  it('verifies that index.html contains the exact Bing Webmaster Tools verification meta tag in head before scripts and body', async () => {
     const fs = await import('node:fs');
     const path = await import('node:path');
     const indexPath = path.resolve(process.cwd(), 'index.html');
     const content = fs.readFileSync(indexPath, 'utf8');
     const matches = content.match(/<meta\s+name=["']msvalidate\.01["']\s+content=["']E3F2A39BE75B4A5D324D94657EF11B03["']\s*\/>/g);
     assert.ok(matches && matches.length === 1, 'Bing meta tag must exist exactly once in index.html');
+
+    const metaIndex = content.indexOf('<meta name="msvalidate.01" content="E3F2A39BE75B4A5D324D94657EF11B03" />');
+    const headCloseIndex = content.indexOf('</head>');
+    const bodyOpenIndex = content.indexOf('<body');
+    const firstScriptIndex = content.indexOf('<script');
+
+    assert.ok(metaIndex !== -1, 'Bing meta tag must exist');
+    assert.ok(headCloseIndex !== -1 && metaIndex < headCloseIndex, 'Bing meta tag must be inside <head>');
+    assert.ok(bodyOpenIndex !== -1 && metaIndex < bodyOpenIndex, 'Bing meta tag must appear before <body>');
+    assert.ok(firstScriptIndex !== -1 && metaIndex < firstScriptIndex, 'Bing meta tag must appear before any <script> tag to avoid parser stream timeouts');
+  });
+
+  it('verifies that public/BingSiteAuth.xml exists with exact Bing verification key', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const filePath = path.resolve(process.cwd(), 'public/BingSiteAuth.xml');
+    assert.ok(fs.existsSync(filePath), 'public/BingSiteAuth.xml must exist');
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(content.includes('<user>E3F2A39BE75B4A5D324D94657EF11B03</user>'));
   });
 });
 
